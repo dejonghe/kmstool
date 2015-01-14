@@ -47,7 +47,7 @@ def derive_key_and_iv(password, salt, key_length, iv_length):
         d += d_i
     return d[:key_length], d[key_length:key_length+iv_length]
 
-def encrypt(in_file, out_file, password, key_length=32):
+def encrypt(in_file, out_file, password, key_length=512):
     bs = AES.block_size
     salt = Random.new().read(bs - len('Salted__'))
     key, iv = derive_key_and_iv(password, salt, key_length, bs)
@@ -62,7 +62,7 @@ def encrypt(in_file, out_file, password, key_length=32):
             finished = True
         out_file.write(cipher.encrypt(chunk))
 
-def decrypt(in_file, out_file, password, key_length=32):
+def decrypt(in_file, out_file, password, key_length=512):
     bs = AES.block_size
     salt = in_file.read(bs)[len('Salted__'):]
     key, iv = derive_key_and_iv(password, salt, key_length, bs)
