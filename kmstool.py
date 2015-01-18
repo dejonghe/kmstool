@@ -1,27 +1,37 @@
-#!/bin/python
+#!/usr/bin/env python2.7
 from hashlib import md5
 from Crypto.Cipher import AES
 from Crypto import Random
 import base64
 
-import boto3
+from boto3 import client
 from boto3.session import Session
-
-import sys
-import datetime
-import tarfile
 
 from optparse import OptionParser
 from ConfigParser import ConfigParser
-import os
-from os.path import expanduser
+from os import walk, path, mkdir, rmdir, remove
+import tarfile
+from os.path import join
+# walk a directory structure and remove everything
+def rm_rf(path):
+    for root, dirs, files in walk(path, topdown=False):
+        # if dir is empty skip files
+        for name in files:
+            remove(join(root, name))
+        for name in dirs:
+            rmdir(join(root, name))
+    rmdir(path)
 
+# get_profile will use the config file for aws cli 
+# provide a profile name it will fetch credentials
 def get_profile(profile='default'):
+    # if profile is not default need prefix profile
     if profile != 'default':
         profile = 'profile %s' % profile
-    home = expanduser("~")
+    home = path.expanduser("~")
     aws_creds = ConfigParser()
     aws_creds.read('%s/.aws/config' % home)
+    # this is logic for roles, when using role there may only be region
     try:
         return { 'aws_access_key_id': aws_creds.get(profile, 'aws_access_key_id'),
                  'aws_secret_access_key': aws_creds.get(profile, 'aws_secret_access_key'),
@@ -29,7 +39,10 @@ def get_profile(profile='default'):
     except:
         return { 'region': aws_creds.get(profile, 'region') }
 
+
+# connect to kms with boto3
 def connect(profile="default"):
+    # if using default profile or role we dont need to pass creds 
     if profile == "default":
         kms = boto3.client('kms')
     else:
@@ -40,6 +53,7 @@ def connect(profile="default"):
         kms = session.client('kms')
     return kms
 
+# make a big messy md5
 def derive_key_and_iv(password, salt, key_length, iv_length):
     d = d_i = ''
     while len(d) < key_length + iv_length:
@@ -47,6 +61,9 @@ def derive_key_and_iv(password, salt, key_length, iv_length):
         d += d_i
     return d[:key_length], d[key_length:key_length+iv_length]
 
+# encrypt reads and writes files
+# password is the kms data key
+# key lenght must not be more than 32
 def encrypt(in_file, out_file, password, key_length=32):
     bs = AES.block_size
     salt = Random.new().read(bs - len('Salted__'))
@@ -62,6 +79,9 @@ def encrypt(in_file, out_file, password, key_length=32):
             finished = True
         out_file.write(cipher.encrypt(chunk))
 
+# decrypt reads and writes files
+# password is the kms data key
+# key lenght must not be more than 32
 def decrypt(in_file, out_file, password, key_length=32):
     bs = AES.block_size
     salt = in_file.read(bs)[len('Salted__'):]
@@ -79,6 +99,7 @@ def decrypt(in_file, out_file, password, key_length=32):
 
 
 def main():
+    # Help file and options
     usage = "usage: %prog [options] \nYou must specify to encrypt or decrypt.\nOutput will always output a tar file."
     parser = OptionParser(usage=usage)
     parser.add_option("-e","--encrypt", help="This encrypts the file", action="store_true", dest="encrypt")
@@ -90,42 +111,52 @@ def main():
     parser.add_option("-p","--profile", help="AWS Profile", default="default")
     (opts, args) = parser.parse_args()
 
+    # connect to kms
     kms = connect(opts.profile)
-    workingdir = "/var/tmp/kmstool/"
-    os.mkdir(workingdir)
-    enc_file = os.path.join(workingdir, 'file.enc')
-    cipher_file = os.path.join(workingdir, 'key.enc')
+    workingdir = "/var/tmp/kmstool/" # directory for temp files
+    try: 
+        mkdir(workingdir)
+    except:
+        rm_rf(workingdir)
+        mkdir(workingdir)
+    # naming temp files
+    enc_file = join(workingdir, 'file.enc')
+    cipher_file = join(workingdir, 'key.enc')
 
     if opts.encrypt:  
+        # get a data key from kms
         response = kms.generate_data_key(KeyId=opts.key_id, KeySpec=opts.key_spec)
-
+        # key comes in as binary so we encode it
         key = base64.b64encode(response['Plaintext'])
+        # this is the encrypted version we store with the data 
         ciphertext = response['CiphertextBlob']    
+
         with open(opts.file, 'rb') as in_file, open(enc_file, 'wb') as out_file:
             encrypt(in_file, out_file, key)
         with open(cipher_file, 'wb') as out_file:
             out_file.write(ciphertext)
+        # tar up the encrypted file and the ciphertext key
         with tarfile.open(opts.output, "w") as tar:
             for name in [enc_file, cipher_file]:
-                tar.add(name,arcname=os.path.split(name)[1])
+                tar.add(name,arcname=path.split(name)[1])
 
     elif not opts.encrypt:
+        # unpack tar file
         tar = tarfile.open(opts.file)
         tar.extractall(workingdir)
         tar.close()
+        # read ciphertext key  
         with open(cipher_file, 'rb') as open_file:
             ciphertext = open_file.read()
+        # decrypt via kms
         response = kms.decrypt(CiphertextBlob=ciphertext)
+        # encode the binary key so it's the same as it was for encrypt
         key = base64.b64encode(response['Plaintext']) 
         with open(enc_file, 'rb') as in_file, open(opts.output, 'wb') as out_file:
             decrypt(in_file, out_file, key)
-
-    for root, dirs, files in os.walk(workingdir, topdown=False):
-        for name in files:
-            os.remove(os.path.join(root, name))
-        for name in dirs:
-            os.rmdir(os.path.join(root, name))
-    os.rmdir(workingdir)
+    
+    # clean up working directory 
+    rm_rf(workingdir)
 
 if __name__ == '__main__':
     try: main()
