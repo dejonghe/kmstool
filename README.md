@@ -1,4 +1,4 @@
-# kmstool
+# !kmstool
 Tool for using AWS KMS data keys to encrypt and decrypt larger files. 
 
 # Requirements
