@@ -45,7 +45,7 @@ def get_profile(profile='default'):
 def connect(profile="default"):
     # if using default profile or role we dont need to pass creds 
     if profile == "default":
-        kms = boto3.client('kms')
+        kms = client('kms')
     else:
         profile = get_profile(profile)
         session = Session(aws_access_key_id=profile['aws_access_key_id'],
