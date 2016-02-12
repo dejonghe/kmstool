@@ -4,6 +4,7 @@ from Crypto.Cipher import AES
 from Crypto import Random
 import base64
 
+import boto3
 from boto3 import client
 from boto3.session import Session
 
@@ -161,4 +162,5 @@ def main():
 if __name__ == '__main__':
     try: main()
     except: raise
+
 
