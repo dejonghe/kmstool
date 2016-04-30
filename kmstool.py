@@ -23,35 +23,13 @@ def rm_rf(path):
             rmdir(join(root, name))
     rmdir(path)
 
-# get_profile will use the config file for aws cli 
-# provide a profile name it will fetch credentials
-def get_profile(profile='default'):
-    # if profile is not default need prefix profile
-    if profile != 'default':
-        profile = 'profile %s' % profile
-    home = path.expanduser("~")
-    aws_creds = ConfigParser()
-    aws_creds.read('%s/.aws/config' % home)
-    # this is logic for roles, when using role there may only be region
-    try:
-        return { 'aws_access_key_id': aws_creds.get(profile, 'aws_access_key_id'),
-                 'aws_secret_access_key': aws_creds.get(profile, 'aws_secret_access_key'),
-                 'region': aws_creds.get(profile, 'region') }
-    except:
-        return { 'region': aws_creds.get(profile, 'region') }
-
-
 # connect to kms with boto3
-def connect(profile="default"):
-    # if using default profile or role we dont need to pass creds 
-    if profile == "default":
-        kms = client('kms')
+def connect(profile="default",region=None):
+    if region == None: 
+        session = Session(profile_name=profile) 
     else:
-        profile = get_profile(profile)
-        session = Session(aws_access_key_id=profile['aws_access_key_id'],
-                  aws_secret_access_key=profile['aws_secret_access_key'],
-                  region_name=profile['region']) 
-        kms = session.client('kms')
+        session = Session(profile_name=profile,region_name=region) 
+    kms = session.client('kms')
     return kms
 
 # make a big messy md5
@@ -110,10 +88,11 @@ def main():
     parser.add_option("-k","--key_id", help="KMS Key-id")
     parser.add_option("-s","--key_spec", help="KMS KeySpec", default="AES_256")
     parser.add_option("-p","--profile", help="AWS Profile", default="default")
+    parser.add_option("-r","--region", help="Region", default=None)
     (opts, args) = parser.parse_args()
 
     # connect to kms
-    kms = connect(opts.profile)
+    kms = connect(opts.profile,opts.region)
     workingdir = "/var/tmp/kmstool/" # directory for temp files
     try: 
         mkdir(workingdir)
