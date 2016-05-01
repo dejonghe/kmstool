@@ -42,6 +42,7 @@ class kmstool(object):
         self.cipher_file = join(self.temp_dir, 'key.enc')
         self.session = self.connect()
         self.kms = self.session.client('kms')
+        self.s3 = self.session.client('s3')
 
 
 
@@ -112,19 +113,32 @@ class kmstool(object):
         self.key = base64.b64encode(response['Plaintext'])
         # this is the encrypted version we store with the data 
         self.ciphertext = response['CiphertextBlob']    
-        with open(self.input_file, 'rb') as in_file, open(self.enc_file, 'wb') as out_file:
+        if 's3://' in self.input_file:
+            local_path = self.temp_dir + 'temp_file'
+            self.s3_download(self.input_file, local_path)
+        else:
+            local_path = self.input_file
+        with open(local_path, 'rb') as in_file, open(self.enc_file, 'wb') as out_file:
             self.encrypt_file(in_file, out_file)
         with open(self.cipher_file, 'wb') as out_file:
             out_file.write(self.ciphertext)
         # tar up the encrypted file and the ciphertext key
-        with tarfile.open(self.output_file, "w") as tar:
-            for name in [self.enc_file, self.cipher_file]:
-                tar.add(name,arcname=path.split(name)[1])
+        if 's3://' in self.output_file:
+            output_path = self.temp_dir + 'temp_output'
+            self.tar_file(output_path)
+            self.s3_upload(output_path, self.output_file)
+        else:
+            self.tar_file(self.output_file)
         self.rm_rf(self.temp_dir)
 
     def decrypt(self):
+        if 's3://' in self.input_file:
+            local_path = self.temp_dir + 'temp_file'
+            self.s3_download(self.input_file, local_path)
+        else:
+            local_path = self.input_file
         # unpack tar file
-        tar = tarfile.open(self.input_file)
+        tar = tarfile.open(local_path)
         tar.extractall(self.temp_dir)
         tar.close()
         # read ciphertext key  
@@ -134,9 +148,30 @@ class kmstool(object):
         response = self.kms.decrypt(CiphertextBlob=ciphertext)
         # encode the binary key so it's the same as it was for encrypt
         self.key = base64.b64encode(response['Plaintext']) 
-        with open(self.enc_file, 'rb') as in_file, open(self.output_file, 'wb') as out_file:
-            self.decrypt_file(in_file, out_file)
+        if 's3://' in self.output_file:
+            output_path = self.temp_dir + 'temp_output'
+            with open(self.enc_file, 'rb') as in_file, open(output_path, 'wb') as out_file:
+                self.decrypt_file(in_file, out_file)
+            self.s3_upload(output_path, self.output_file)
+        else:
+            with open(self.enc_file, 'rb') as in_file, open(self.output_file, 'wb') as out_file:
+                self.decrypt_file(in_file, out_file)
         self.rm_rf(self.temp_dir)
+
+    def tar_file(self, output_file):
+        with tarfile.open(output_file, "w") as tar:
+            for name in [self.enc_file, self.cipher_file]:
+                tar.add(name,arcname=path.split(name)[1])
+
+    def s3_upload(self, orig, dest):
+        dest_bucket = dest.split('/')[2]
+        dest_key = '/'.join(dest.split('/')[3:])
+        self.s3.upload_file(orig, dest_bucket, dest_key)
+
+    def s3_download(self, orig, dest):
+        orig_bucket = orig.split('/')[2]
+        orig_key = '/'.join(orig.split('/')[3:])
+        self.s3.download_file(orig_bucket, orig_key, dest)
 
 def main():
     # Help file and options
@@ -150,15 +185,16 @@ def main():
     parser.add_option('-s','--key_spec', help='KMS KeySpec', default='AES_256')
     parser.add_option('-p','--profile', help='AWS Profile', default='default')
     parser.add_option('-r','--region', help='Region', default=None)
-    parser.add_option('-t','--temp', help='Temp work dir, optional', default='/var/tmp/kmstool/')
+    parser.add_option('-t','--temp', help='Temp work dir, optional', default='/var/tmp/')
     (opts, args) = parser.parse_args()
 
+    temp_dir = opts.temp + 'kmstool_temp/'
     # init kms
     tool = kmstool(input_file=opts.file,
                       output_file=opts.output,
                       key_id=opts.key_id,
                       key_spec=opts.key_spec,
-                      temp_dir=opts.temp,
+                      temp_dir=temp_dir,
                       profile=opts.profile,
                       region=opts.region)
 
