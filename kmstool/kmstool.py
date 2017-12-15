@@ -8,8 +8,6 @@ import boto3
 from boto3 import client
 from boto3.session import Session
 
-from optparse import OptionParser
-from ConfigParser import ConfigParser
 from os import walk, path, mkdir, rmdir, remove
 import tarfile
 from os.path import join
@@ -173,36 +171,3 @@ class kmstool(object):
         orig_key = '/'.join(orig.split('/')[3:])
         self.s3.download_file(orig_bucket, orig_key, dest)
 
-def main():
-    # Help file and options
-    usage = "usage: %prog [options] \nYou must specify to encrypt or decrypt.\nOutput will always output a tar file."
-    parser = OptionParser(usage=usage)
-    parser.add_option('-e','--encrypt', help='This encrypts the file', action='store_true', dest='encrypt')
-    parser.add_option('-d','--decrypt', help='This decrypts the file', action='store_false', dest='encrypt')
-    parser.add_option('-f','--file',  help='File to encrypt or decrypt')
-    parser.add_option('-o','--output', help='Path to output file')
-    parser.add_option('-k','--key_id', help='KMS Key-id')
-    parser.add_option('-s','--key_spec', help='KMS KeySpec', default='AES_256')
-    parser.add_option('-p','--profile', help='AWS Profile', default='default')
-    parser.add_option('-r','--region', help='Region', default=None)
-    parser.add_option('-t','--temp', help='Temp work dir, optional', default='/var/tmp/')
-    (opts, args) = parser.parse_args()
-
-    temp_dir = opts.temp + 'kmstool_temp/'
-    # init kms
-    tool = kmstool(input_file=opts.file,
-                      output_file=opts.output,
-                      key_id=opts.key_id,
-                      key_spec=opts.key_spec,
-                      temp_dir=temp_dir,
-                      profile=opts.profile,
-                      region=opts.region)
-
-    if opts.encrypt:  
-        tool.encrypt()
-    elif not opts.encrypt:
-        tool.decrypt()
-
-if __name__ == '__main__':
-    try: main()
-    except: raise
