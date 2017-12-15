@@ -21,6 +21,16 @@ def main():
     parser.add_option('-t','--temp', help='Temp work dir, optional', default='/var/tmp/')
     (opts, args) = parser.parse_args()
 
+
+    options_broken = False
+    if hasattr(opts, 'encrypt'):
+        options_broken = True
+    if not opts.file and not opts.output: 
+        options_broken = True
+    if options_broken:
+        parser.print_help()
+        exit(1)
+
     temp_dir = opts.temp + 'kmstool_temp/'
     # init kms
     tool = kmstool(input_file=opts.file,
