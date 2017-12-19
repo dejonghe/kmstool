@@ -1,7 +1,5 @@
 #!/usr/bin/env python
-from optparse import OptionParser
-from ConfigParser import ConfigParser
-
+import argparse
 from kmstool import kmstool
 
 __version__ = '1.3.0'
