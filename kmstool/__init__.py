@@ -6,42 +6,41 @@ __version__ = '1.3.0'
 
 def main():
     # Help file and options
-    usage = "usage: %prog [options] \nYou must specify to encrypt or decrypt.\nOutput will always output a tar file."
-    parser = OptionParser(usage=usage)
-    parser.add_option('-e','--encrypt', help='This encrypts the file', action='store_true', dest='encrypt')
-    parser.add_option('-d','--decrypt', help='This decrypts the file', action='store_false', dest='encrypt')
-    parser.add_option('-f','--file',  help='File to encrypt or decrypt')
-    parser.add_option('-o','--output', help='Path to output file')
-    parser.add_option('-k','--key_id', help='KMS Key-id')
-    parser.add_option('-s','--key_spec', help='KMS KeySpec', default='AES_256')
-    parser.add_option('-p','--profile', help='AWS Profile', default='default')
-    parser.add_option('-r','--region', help='Region', default=None)
-    parser.add_option('-t','--temp', help='Temp work dir, optional', default='/var/tmp/')
-    (opts, args) = parser.parse_args()
+    parser = argparse.ArgumentParser(description='Envelope encryption with AWS KMS')
+    parser.add_argument('-e','--encrypt', help='This encrypts the file', action='store_true', dest='encrypt')
+    parser.add_argument('-d','--decrypt', help='This decrypts the file', action='store_false', dest='encrypt')
+    parser.add_argument('-f','--file',  help='File to encrypt or decrypt')
+    parser.add_argument('-o','--output', help='Path to output file')
+    parser.add_argument('-k','--key_id', help='KMS Key-id')
+    parser.add_argument('-s','--key_spec', help='KMS KeySpec', default='AES_256')
+    parser.add_argument('-p','--profile', help='AWS Profile', default='default')
+    parser.add_argument('-r','--region', help='Region', default=None)
+    parser.add_argument('-t','--temp', help='Temp work dir, optional', default='/var/tmp/')
+    args = parser.parse_args()
 
 
     options_broken = False
-    if hasattr(opts, 'encrypt'):
+    if hasattr(args, 'encrypt'):
         options_broken = True
-    if not opts.file and not opts.output: 
+    if not args.file and not args.output: 
         options_broken = True
     if options_broken:
         parser.print_help()
         exit(1)
 
-    temp_dir = opts.temp + 'kmstool_temp/'
+    temp_dir = args.temp + 'kmstool_temp/'
     # init kms
-    tool = kmstool(input_file=opts.file,
-                      output_file=opts.output,
-                      key_id=opts.key_id,
-                      key_spec=opts.key_spec,
+    tool = kmstool(input_file=args.file,
+                      output_file=args.output,
+                      key_id=args.key_id,
+                      key_spec=args.key_spec,
                       temp_dir=temp_dir,
-                      profile=opts.profile,
-                      region=opts.region)
+                      profile=args.profile,
+                      region=args.region)
 
-    if opts.encrypt:
+    if args.encrypt:
         tool.encrypt()
-    elif not opts.encrypt:
+    elif not args.encrypt:
         tool.decrypt()
 
 if __name__ == '__main__':
