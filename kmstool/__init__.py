@@ -1,8 +1,8 @@
-#!/usr/bin/env python2.7
+#!/usr/bin/env python
 import argparse
 from kmstool import kmstool
 
-__version__ = '1.2.0'
+__version__ = '1.3.0'
 
 def main():
     # Help file and options

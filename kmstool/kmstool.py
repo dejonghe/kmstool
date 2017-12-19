@@ -1,4 +1,4 @@
-#!/usr/bin/env python2.7
+#!/usr/bin/env python
 from hashlib import md5
 from Crypto.Cipher import AES
 from Crypto import Random
