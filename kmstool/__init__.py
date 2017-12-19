@@ -4,7 +4,7 @@ from ConfigParser import ConfigParser
 
 from kmstool import kmstool
 
-__version__ = '1.2.0'
+__version__ = '1.3.0'
 
 def main():
     # Help file and options
