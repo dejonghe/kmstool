@@ -21,7 +21,7 @@ class kmstool(object):
                  key_id=None,
                  key_spec='AES_256',
                  temp_dir='/var/tmp/kmstool',
-                 profile='default',
+                 profile=None,
                  region=None,
                  key_length=32):
         self.input_file = input_file
@@ -183,7 +183,7 @@ def main():
     parser.add_option('-o','--output', help='Path to output file')
     parser.add_option('-k','--key_id', help='KMS Key-id')
     parser.add_option('-s','--key_spec', help='KMS KeySpec', default='AES_256')
-    parser.add_option('-p','--profile', help='AWS Profile', default='default')
+    parser.add_option('-p','--profile', help='AWS Profile', default=None)
     parser.add_option('-r','--region', help='Region', default=None)
     parser.add_option('-t','--temp', help='Temp work dir, optional', default='/var/tmp/')
     (opts, args) = parser.parse_args()
