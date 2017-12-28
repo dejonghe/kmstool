@@ -2,7 +2,7 @@
 import argparse
 from kmstool import kmstool
 
-__version__ = '1.3.0'
+__version__ = '1.3.1'
 
 def main():
     # Help file and options
@@ -20,7 +20,7 @@ def main():
 
 
     options_broken = False
-    if hasattr(args, 'encrypt'):
+    if not hasattr(args, 'encrypt'):
         options_broken = True
     if not args.file and not args.output: 
         options_broken = True
