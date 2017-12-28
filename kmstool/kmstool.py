@@ -19,7 +19,7 @@ class kmstool(object):
                  key_id=None,
                  key_spec='AES_256',
                  temp_dir='/var/tmp/kmstool',
-                 profile='default',
+                 profile=None,
                  region=None,
                  key_length=32):
         self.input_file = input_file
