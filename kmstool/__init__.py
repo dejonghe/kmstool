@@ -13,7 +13,7 @@ def main():
     parser.add_argument('-o','--output', help='Path to output file')
     parser.add_argument('-k','--key_id', help='KMS Key-id')
     parser.add_argument('-s','--key_spec', help='KMS KeySpec', default='AES_256')
-    parser.add_argument('-p','--profile', help='AWS Profile', default='default')
+    parser.add_argument('-p','--profile', help='AWS Profile', default=None)
     parser.add_argument('-r','--region', help='Region', default=None)
     parser.add_argument('-t','--temp', help='Temp work dir, optional', default='/var/tmp/')
     args = parser.parse_args()
