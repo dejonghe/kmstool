@@ -97,8 +97,8 @@ setup(
     # requirements files see:
     # https://packaging.python.org/en/latest/requirements.html
     install_requires=[
-        'boto3>=1.3.1'
-        'pycrypto>=2.6.1'
+        'boto3>=1.3.1',
+        'pycryptodome>=3.4.7',
         'argparse>=1.2.1'
     ],
 

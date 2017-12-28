@@ -2,7 +2,7 @@
 import argparse
 from kmstool import kmstool
 
-__version__ = '1.3.0'
+__version__ = '1.3.1'
 
 def main():
     # Help file and options
@@ -13,14 +13,14 @@ def main():
     parser.add_argument('-o','--output', help='Path to output file')
     parser.add_argument('-k','--key_id', help='KMS Key-id')
     parser.add_argument('-s','--key_spec', help='KMS KeySpec', default='AES_256')
-    parser.add_argument('-p','--profile', help='AWS Profile', default='default')
+    parser.add_argument('-p','--profile', help='AWS Profile', default=None)
     parser.add_argument('-r','--region', help='Region', default=None)
     parser.add_argument('-t','--temp', help='Temp work dir, optional', default='/var/tmp/')
     args = parser.parse_args()
 
 
     options_broken = False
-    if hasattr(args, 'encrypt'):
+    if not hasattr(args, 'encrypt'):
         options_broken = True
     if not args.file and not args.output: 
         options_broken = True
