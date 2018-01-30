@@ -66,7 +66,7 @@ class KmsTool(object):
     def derive_key_and_iv(self, salt, iv_length):
         d = d_i = str('')
         while len(d) < self.key_length + iv_length:
-            d_i = md5(str(d_i).encode('utf-8') + str(self.key).encode('utf-8') + str(salt).encode('utf-8')).digest()
+            d_i = md5(str(d_i).encode('windows-1252') + str(self.key).encode('ascii') + str(salt).encode('windows-1252')).digest()
             d += str(d_i)
         return d[:self.key_length], d[self.key_length:self.key_length+iv_length]
     
@@ -103,7 +103,7 @@ class KmsTool(object):
                 chunk = chunk[:-padding_length]
                 finished = True
             if isinstance(chunk,str):
-                chunk = bytes(chunk,'utf-8')
+                chunk = bytes(chunk,'ascii')
             out_file.write(chunk)
 
     def encrypt(self):
