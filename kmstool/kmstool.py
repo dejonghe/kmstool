@@ -3,6 +3,7 @@ from hashlib import md5
 from Crypto.Cipher import AES
 from Crypto import Random
 import base64
+import chardet
 
 import boto3
 from boto3 import client
@@ -11,6 +12,13 @@ from boto3.session import Session
 from os import walk, path, mkdir, rmdir, remove
 import tarfile
 from os.path import join
+
+def whatisthis(s,context=None):
+    print(context, chardet.detect(s)['encoding'])
+    if isinstance(s, str):
+        print('string')
+    else:
+        print("not a string: {}".format(type(s)))
 
 class KmsTool(object):
     def __init__(self,
@@ -64,10 +72,13 @@ class KmsTool(object):
     
     # make a big messy md5
     def derive_key_and_iv(self, salt, iv_length):
-        d = d_i = str('')
+        
         while len(d) < self.key_length + iv_length:
+            whatisthis(d_i,'d_i')
+            whatisthis(self.key,'key')
+            whatisthis(salt,'salt')
             d_i = md5(str(d_i).encode('windows-1252') + str(self.key).encode('ascii') + str(salt).encode('windows-1252')).digest()
-            d += str(d_i)
+            d += d_i
         return d[:self.key_length], d[self.key_length:self.key_length+iv_length]
     
     # encrypt reads and writes files
@@ -102,8 +113,10 @@ class KmsTool(object):
                 padding_length = chunk[-1]
                 chunk = chunk[:-padding_length]
                 finished = True
+            whatisthis(chunk,'chunk')
             if isinstance(chunk,str):
                 chunk = bytes(chunk,'ascii')
+            whatisthis(chunk,'chunk')
             out_file.write(chunk)
 
     def encrypt(self):
