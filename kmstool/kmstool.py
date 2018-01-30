@@ -12,7 +12,7 @@ from os import walk, path, mkdir, rmdir, remove
 import tarfile
 from os.path import join
 
-class kmstool(object):
+class KmsTool(object):
     def __init__(self,
                  input_file=None,
                  output_file=None,
@@ -64,10 +64,10 @@ class kmstool(object):
     
     # make a big messy md5
     def derive_key_and_iv(self, salt, iv_length):
-        d = d_i = ''
+        d = d_i = str('')
         while len(d) < self.key_length + iv_length:
-            d_i = md5(d_i + self.key + salt).digest()
-            d += d_i
+            d_i = md5(str(d_i).encode('utf-8') + str(self.key).encode('utf-8') + str(salt).encode('utf-8')).digest()
+            d += str(d_i)
         return d[:self.key_length], d[self.key_length:self.key_length+iv_length]
     
     # encrypt reads and writes files
@@ -93,15 +93,17 @@ class kmstool(object):
     def decrypt_file(self, in_file, out_file):
         salt = in_file.read(self.bs)[len('Salted__'):]
         key, iv = self.derive_key_and_iv(salt, self.bs)
-        cipher = AES.new(key, AES.MODE_CBC, iv)
+        cipher = AES.new(bytes(key,'utf-8'), AES.MODE_CBC, bytes(iv,'utf-8'))
         next_chunk = ''
         finished = False
         while not finished:
             chunk, next_chunk = next_chunk, cipher.decrypt(in_file.read(1024 * self.bs))
             if len(next_chunk) == 0:
-                padding_length = ord(chunk[-1])
+                padding_length = chunk[-1]
                 chunk = chunk[:-padding_length]
                 finished = True
+            if isinstance(chunk,str):
+                chunk = bytes(chunk,'utf-8')
             out_file.write(chunk)
 
     def encrypt(self):

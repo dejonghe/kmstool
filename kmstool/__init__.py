@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 import argparse
-from kmstool import kmstool
+from kmstool import KmsTool
 
-__version__ = '1.3.1'
+__version__ = '1.3.2'
 
 def main():
     # Help file and options
@@ -30,7 +30,7 @@ def main():
 
     temp_dir = args.temp + 'kmstool_temp/'
     # init kms
-    tool = kmstool(input_file=args.file,
+    tool = KmsTool(input_file=args.file,
                       output_file=args.output,
                       key_id=args.key_id,
                       key_spec=args.key_spec,
