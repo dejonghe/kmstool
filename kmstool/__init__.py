@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 import argparse
-from kmstool import kmstool
+from . import kmstool
 
-__version__ = '1.3.1'
+__version__ = '1.3.2'
 
 def main():
     # Help file and options
@@ -16,10 +16,14 @@ def main():
     parser.add_argument('-p','--profile', help='AWS Profile', default=None)
     parser.add_argument('-r','--region', help='Region', default=None)
     parser.add_argument('-t','--temp', help='Temp work dir, optional', default='/var/tmp/')
+    parser.add_argument('-v','--version', help='Print Version', action='store_true', dest='version')
     args = parser.parse_args()
 
 
     options_broken = False
+    if args.version:
+        print(__version__)
+        exit(0)
     if not hasattr(args, 'encrypt'):
         options_broken = True
     if not args.file and not args.output: 
@@ -30,7 +34,7 @@ def main():
 
     temp_dir = args.temp + 'kmstool_temp/'
     # init kms
-    tool = kmstool(input_file=args.file,
+    tool = kmstool.KmsTool(input_file=args.file,
                       output_file=args.output,
                       key_id=args.key_id,
                       key_spec=args.key_spec,

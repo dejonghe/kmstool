@@ -4,9 +4,15 @@ kmstool
 Tool for using AWS KMS data keys to encrypt and decrypt larger files.
 Input and Output file can be local or s3 file paths. If you were using
 this tool before May 2016, this was pre tag/release. That version is
-still available at v1.0.0. # Requirements Requires: boto3, pycrypto
+still available at v1.0.0.
 
-``pip install -r requirements.txt``
+Install
+=======
+
+kmstool is now able to be installed via pip. Download the latest release
+package and pip install it:
+
+``pip install ~/Downloads/kmstool-1.3.2.tar.gz``
 
 Usage
 =====
