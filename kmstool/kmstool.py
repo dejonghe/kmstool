@@ -2,8 +2,8 @@
 from hashlib import md5
 from Crypto.Cipher import AES
 from Crypto import Random
+from builtins import str
 import base64
-import chardet
 
 import boto3
 from boto3 import client
@@ -12,13 +12,6 @@ from boto3.session import Session
 from os import walk, path, mkdir, rmdir, remove
 import tarfile
 from os.path import join
-
-def whatisthis(s,context=None):
-    print(context, chardet.detect(s)['encoding'])
-    if isinstance(s, str):
-        print('string')
-    else:
-        print("not a string: {}".format(type(s)))
 
 class KmsTool(object):
     def __init__(self,
@@ -72,12 +65,10 @@ class KmsTool(object):
     
     # make a big messy md5
     def derive_key_and_iv(self, salt, iv_length):
-        
+        d = d_i = b''
         while len(d) < self.key_length + iv_length:
-            whatisthis(d_i,'d_i')
-            whatisthis(self.key,'key')
-            whatisthis(salt,'salt')
-            d_i = md5(str(d_i).encode('windows-1252') + str(self.key).encode('ascii') + str(salt).encode('windows-1252')).digest()
+            pre_hash = d_i + self.key + salt
+            d_i = md5(pre_hash).digest()
             d += d_i
         return d[:self.key_length], d[self.key_length:self.key_length+iv_length]
     
@@ -104,19 +95,21 @@ class KmsTool(object):
     def decrypt_file(self, in_file, out_file):
         salt = in_file.read(self.bs)[len('Salted__'):]
         key, iv = self.derive_key_and_iv(salt, self.bs)
-        cipher = AES.new(bytes(key,'utf-8'), AES.MODE_CBC, bytes(iv,'utf-8'))
+        cipher = AES.new(key, AES.MODE_CBC, iv)
         next_chunk = ''
         finished = False
         while not finished:
             chunk, next_chunk = next_chunk, cipher.decrypt(in_file.read(1024 * self.bs))
             if len(next_chunk) == 0:
-                padding_length = chunk[-1]
+                # Python 3 does not need the ord() its redundant and no reverse compatability 
+                try:
+                    padding_length = ord(chunk[-1])
+                except TypeError:
+                    padding_length = chunk[-1]
                 chunk = chunk[:-padding_length]
                 finished = True
-            whatisthis(chunk,'chunk')
             if isinstance(chunk,str):
                 chunk = bytes(chunk,'ascii')
-            whatisthis(chunk,'chunk')
             out_file.write(chunk)
 
     def encrypt(self):
