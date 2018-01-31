@@ -5,7 +5,7 @@ If you were using this tool before May 2016, this was pre tag/release. That vers
 # Install 
 kmstool is now able to be installed via pip. Download the latest release package and pip install it:
 
-```pip install ~/Downloads/kmstool-1.2.0.tar.gz```
+```pip install ~/Downloads/kmstool-1.3.2.tar.gz```
 
 # Usage
 For encrypting must have Key-Id 
