@@ -2,6 +2,8 @@
 from hashlib import md5
 from Crypto.Cipher import AES
 from Crypto import Random
+from builtins import str
+import sys
 import base64
 
 import boto3
@@ -12,7 +14,7 @@ from os import walk, path, mkdir, rmdir, remove
 import tarfile
 from os.path import join
 
-class kmstool(object):
+class KmsTool(object):
     def __init__(self,
                  input_file=None,
                  output_file=None,
@@ -64,9 +66,10 @@ class kmstool(object):
     
     # make a big messy md5
     def derive_key_and_iv(self, salt, iv_length):
-        d = d_i = ''
+        d = d_i = b''
         while len(d) < self.key_length + iv_length:
-            d_i = md5(d_i + self.key + salt).digest()
+            pre_hash = d_i + self.key + salt
+            d_i = md5(pre_hash).digest()
             d += d_i
         return d[:self.key_length], d[self.key_length:self.key_length+iv_length]
     
@@ -77,13 +80,19 @@ class kmstool(object):
         salt = Random.new().read(self.bs - len('Salted__'))
         key, iv = self.derive_key_and_iv(salt, self.bs)
         cipher = AES.new(key, AES.MODE_CBC, iv)
-        out_file.write('Salted__' + salt)
+        salt_stash = b'Salted__' + salt
+        if isinstance(salt_stash,str):
+            salt_stash = bytes(salt_stash,'ascii')
+        out_file.write(salt_stash)
         finished = False
         while not finished:
             chunk = in_file.read(1024 * self.bs)
             if len(chunk) == 0 or len(chunk) % self.bs != 0:
                 padding_length = (self.bs - len(chunk) % self.bs) or self.bs
-                chunk += padding_length * chr(padding_length)
+                if (sys.version_info > (3, 0)):
+                    chunk += bytes([padding_length]) * padding_length
+                else:
+                    chunk += padding_length * chr(padding_length)
                 finished = True
             out_file.write(cipher.encrypt(chunk))
     
@@ -99,9 +108,15 @@ class kmstool(object):
         while not finished:
             chunk, next_chunk = next_chunk, cipher.decrypt(in_file.read(1024 * self.bs))
             if len(next_chunk) == 0:
-                padding_length = ord(chunk[-1])
+                # Python 3 does not need the ord() its redundant and no reverse compatability 
+                if (sys.version_info > (3, 0)):
+                    padding_length = chunk[-1]
+                else:
+                    padding_length = ord(chunk[-1])
                 chunk = chunk[:-padding_length]
                 finished = True
+            if isinstance(chunk,str):
+                chunk = bytes(chunk,'ascii')
             out_file.write(chunk)
 
     def encrypt(self):
