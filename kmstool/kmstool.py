@@ -109,10 +109,10 @@ class KmsTool(object):
             chunk, next_chunk = next_chunk, cipher.decrypt(in_file.read(1024 * self.bs))
             if len(next_chunk) == 0:
                 # Python 3 does not need the ord() its redundant and no reverse compatability 
-                try:
-                    padding_length = ord(chunk[-1])
-                except TypeError:
+                if (sys.version_info > (3, 0)):
                     padding_length = chunk[-1]
+                else:
+                    padding_length = ord(chunk[-1])
                 chunk = chunk[:-padding_length]
                 finished = True
             if isinstance(chunk,str):
