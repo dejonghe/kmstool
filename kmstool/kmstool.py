@@ -3,6 +3,7 @@ from hashlib import md5
 from Crypto.Cipher import AES
 from Crypto import Random
 from builtins import str
+import sys
 import base64
 
 import boto3
@@ -79,13 +80,19 @@ class KmsTool(object):
         salt = Random.new().read(self.bs - len('Salted__'))
         key, iv = self.derive_key_and_iv(salt, self.bs)
         cipher = AES.new(key, AES.MODE_CBC, iv)
-        out_file.write('Salted__' + salt)
+        salt_stash = b'Salted__' + salt
+        if isinstance(salt_stash,str):
+            salt_stash = bytes(salt_stash,'ascii')
+        out_file.write(salt_stash)
         finished = False
         while not finished:
             chunk = in_file.read(1024 * self.bs)
             if len(chunk) == 0 or len(chunk) % self.bs != 0:
                 padding_length = (self.bs - len(chunk) % self.bs) or self.bs
-                chunk += padding_length * chr(padding_length)
+                if (sys.version_info > (3, 0)):
+                    chunk += bytes([padding_length]) * padding_length
+                else:
+                    chunk += padding_length * chr(padding_length)
                 finished = True
             out_file.write(cipher.encrypt(chunk))
     
