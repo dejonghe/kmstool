@@ -100,7 +100,8 @@ setup(
         'boto3>=1.3.1',
         'pycryptodome>=3.4.7',
         'argparse>=1.2.1',
-        'future>=0.16.0'
+        'future>=0.16.0',
+        'six>=1.11.0'
     ],
 
     # List additional groups of dependencies here (e.g. development

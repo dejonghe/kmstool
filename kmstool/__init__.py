@@ -1,8 +1,37 @@
 #!/usr/bin/env python
 import argparse
+import base64
+import io
+import sys
 from . import kmstool
 
-__version__ = '1.3.2'
+__version__ = '1.4.0'
+
+
+class __encoder(object):
+    """
+    A basic class for converting to and from base64 when interacting
+    with stdin and stdout
+    """
+
+    def __init__(self, encrypt):
+        self.encrypt = encrypt
+
+    def write(self, data):
+        """
+        Base64 encode data and write it to stdout
+        :param data: A string containing arbitrary data
+        :return: None
+        """
+        sys.stdout.write((base64.b64encode(data) if self.encrypt else data).decode('ascii'))
+
+    def read(self):
+        """
+        Return base64 decoded data read from stdin
+        :return: A string containing the decoded data
+        """
+        return sys.stdin.read().encode('ascii') if self.encrypt else base64.b64decode(sys.stdin.read())
+
 
 def main():
     # Help file and options
@@ -26,26 +55,26 @@ def main():
         exit(0)
     if not hasattr(args, 'encrypt'):
         options_broken = True
-    if not args.file and not args.output: 
-        options_broken = True
+    if not args.file:
+        args.file = __encoder(args.encrypt)
+    if not args.output:
+        args.output = __encoder(args.encrypt)
     if options_broken:
         parser.print_help()
         exit(1)
 
     temp_dir = args.temp + 'kmstool_temp/'
     # init kms
-    tool = kmstool.KmsTool(input_file=args.file,
-                      output_file=args.output,
-                      key_id=args.key_id,
-                      key_spec=args.key_spec,
-                      temp_dir=temp_dir,
-                      profile=args.profile,
-                      region=args.region)
+    tool = kmstool.KmsTool(key_id=args.key_id,
+                           key_spec=args.key_spec,
+                           temp_dir=temp_dir,
+                           profile=args.profile,
+                           region=args.region)
 
     if args.encrypt:
-        tool.encrypt()
+        tool.encrypt(args.file, args.output)
     elif not args.encrypt:
-        tool.decrypt()
+        tool.decrypt(args.file, args.output)
 
 if __name__ == '__main__':
     try: main()

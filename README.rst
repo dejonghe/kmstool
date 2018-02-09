@@ -18,7 +18,12 @@ Usage
 =====
 
 For encrypting must have Key-Id Tool will only decrypt things that it
-has encrypted.
+has encrypted. Data can be piped to kmstool and input file omitted when
+encrypting. Omitting output file when decrypting with cause the
+decrypted data to be written to stdout. Encrypt operations with no
+output will write the result to stdout as base64 encoded data. Base64
+encoded data can be piped from stdin for decrypt operations with no
+input file specified.
 
 encrypt:
 
@@ -27,6 +32,7 @@ encrypt:
     kmstool.py -e --file myfiles.tar --output this.tar.enc --key_id <KMS Key-ID>
     kmstool.py -e --file myfiles.tar --output s3://mybucket/my/key/path/this.tar.enc --key_id <KMS Key-ID>
     kmstool.py -e --file s3://bucket/myfiles.tar --output s3://encrypted_bucket/this.tar.enc --key_id <KMS Key-ID>
+    echo 'password' | kmstool.py -e --output this.tar.enc --key_id <KMS Key-ID>
 
 decrypt:
 
@@ -35,6 +41,7 @@ decrypt:
     kmstool.py -d --file this.tar.enc --output myfiles.tar
     kmstool.py -d --file s3://mybucket/my/key/path/this.tar.enc --output myfiles.tar
     kmstool.py -d --file s3://encrypted_bucket/my/key/path/this.tar.enc --output s3://mybucket/myfiles.tar
+    kmstool.py -d --file s3://encrypted_bucket/my/key/path/this.tar.enc
 
 help:
 

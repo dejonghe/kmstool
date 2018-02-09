@@ -4,46 +4,44 @@ from Crypto.Cipher import AES
 from Crypto import Random
 from builtins import str
 import sys
+import six
+import uuid
 import base64
 
 import boto3
 from boto3 import client
 from boto3.session import Session
 
-from os import walk, path, mkdir, rmdir, remove
+from os import walk, path, makedirs, rmdir, remove
 import tarfile
 from os.path import join
 
+
 class KmsTool(object):
     def __init__(self,
-                 input_file=None,
-                 output_file=None,
                  key_id=None,
                  key_spec='AES_256',
                  temp_dir='/var/tmp/kmstool',
                  profile=None,
                  region=None,
-                 key_length=32):
-        self.input_file = input_file
-        self.output_file = output_file
+                 key_length=32,):
         self.key_id=key_id
         self.key_spec=key_spec
         self.key_length=key_length
         self.bs = AES.block_size
-        self.temp_dir = temp_dir
+        self.temp_dir = '{}/{}/'.format(temp_dir.rstrip('/\\'), uuid.uuid4())
         self.profile=profile
         self.region=region
         try: 
-            mkdir(self.temp_dir)
+            makedirs(self.temp_dir)
         except:
             self.rm_rf(self.temp_dir)
-            mkdir(self.temp_dir)
+            makedirs(self.temp_dir)
         self.enc_file = join(self.temp_dir, 'file.enc')
         self.cipher_file = join(self.temp_dir, 'key.enc')
         self.session = self.connect()
         self.kms = self.session.client('kms')
         self.s3 = self.session.client('s3')
-
 
 
     # walk a directory structure and remove everything
@@ -119,37 +117,56 @@ class KmsTool(object):
                 chunk = bytes(chunk,'ascii')
             out_file.write(chunk)
 
-    def encrypt(self):
+    def encrypt(self, source, dest):
         # get a data key from kms
         response = self.kms.generate_data_key(KeyId=self.key_id, KeySpec=self.key_spec)
         # key comes in as binary so we encode it
         self.key = base64.b64encode(response['Plaintext'])
         # this is the encrypted version we store with the data 
         self.ciphertext = response['CiphertextBlob']    
-        if 's3://' in self.input_file:
+        if isinstance(source, six.string_types) and 's3://' in source:
             local_path = self.temp_dir + 'temp_file'
-            self.s3_download(self.input_file, local_path)
+            self.s3_download(source, local_path)
+        elif isinstance(source, six.string_types):
+            local_path = source
         else:
-            local_path = self.input_file
+            local_path = self.temp_dir + 'temp_file'
+            with open(local_path, 'wb') as archive:
+                archive.write(source.read())
+
         with open(local_path, 'rb') as in_file, open(self.enc_file, 'wb') as out_file:
             self.encrypt_file(in_file, out_file)
         with open(self.cipher_file, 'wb') as out_file:
             out_file.write(self.ciphertext)
-        # tar up the encrypted file and the ciphertext key
-        if 's3://' in self.output_file:
+
+        # tar up the encrypted file and the cipher text key
+        if isinstance(dest, six.string_types) and 's3://' in dest:
             output_path = self.temp_dir + 'temp_output'
             self.tar_file(output_path)
-            self.s3_upload(output_path, self.output_file)
+            self.s3_upload(output_path, dest)
+        elif isinstance(dest, six.string_types):
+            self.tar_file(dest)
         else:
-            self.tar_file(self.output_file)
+            output_path = self.temp_dir + 'temp_output'
+            with open(self.enc_file, 'rb') as in_file, open(output_path, 'wb') as out_file:
+                self.tar_file(output_path)
+            with open(output_path, 'rb') as in_file:
+                dest.write(in_file.read())
+
         self.rm_rf(self.temp_dir)
 
-    def decrypt(self):
-        if 's3://' in self.input_file:
+    def decrypt(self, source, dest):
+        # Set local archive
+        if isinstance(source, six.string_types) and 's3://' in source:
             local_path = self.temp_dir + 'temp_file'
-            self.s3_download(self.input_file, local_path)
+            self.s3_download(source, local_path)
+        elif isinstance(source, six.string_types):
+            local_path = source
         else:
-            local_path = self.input_file
+            local_path = self.temp_dir + 'temp_file'
+            with open(local_path, 'wb') as archive:
+                archive.write(source.read())
+
         # unpack tar file
         tar = tarfile.open(local_path)
         tar.extractall(self.temp_dir)
@@ -160,15 +177,21 @@ class KmsTool(object):
         # decrypt via kms
         response = self.kms.decrypt(CiphertextBlob=ciphertext)
         # encode the binary key so it's the same as it was for encrypt
-        self.key = base64.b64encode(response['Plaintext']) 
-        if 's3://' in self.output_file:
+        self.key = base64.b64encode(response['Plaintext'])
+
+        # open input file for reading, open an output file for s3 or file IO or a memory stream for memory IO
+        if isinstance(dest, six.string_types) and 's3://' in dest:
             output_path = self.temp_dir + 'temp_output'
             with open(self.enc_file, 'rb') as in_file, open(output_path, 'wb') as out_file:
                 self.decrypt_file(in_file, out_file)
-            self.s3_upload(output_path, self.output_file)
-        else:
-            with open(self.enc_file, 'rb') as in_file, open(self.output_file, 'wb') as out_file:
+            self.s3_upload(output_path, dest)
+        elif isinstance(dest, six.string_types):
+            with open(self.enc_file, 'rb') as in_file, open(dest, 'wb') as out_file:
                 self.decrypt_file(in_file, out_file)
+        else:
+            with open(self.enc_file, 'rb') as in_file:
+                self.decrypt_file(in_file, dest)
+
         self.rm_rf(self.temp_dir)
 
     def tar_file(self, output_file):
