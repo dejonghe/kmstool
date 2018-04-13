@@ -44,6 +44,7 @@ def main():
     parser.add_argument('-s','--key_spec', help='KMS KeySpec', default='AES_256')
     parser.add_argument('-p','--profile', help='AWS Profile', default=None)
     parser.add_argument('-r','--region', help='Region', default=None)
+    parser.add_argument('-i','--sse', help='Server Side Encryption for S3 key', default=None)
     parser.add_argument('-t','--temp', help='Temp work dir, optional', default='/var/tmp/')
     parser.add_argument('-v','--version', help='Print Version', action='store_true', dest='version')
     args = parser.parse_args()
@@ -69,7 +70,8 @@ def main():
                            key_spec=args.key_spec,
                            temp_dir=temp_dir,
                            profile=args.profile,
-                           region=args.region)
+                           region=args.region,
+                           sse=args.sse)
 
     if args.encrypt:
         tool.encrypt(args.file, args.output)

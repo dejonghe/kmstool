@@ -3,6 +3,7 @@ from hashlib import md5
 from Crypto.Cipher import AES
 from Crypto import Random
 from builtins import str
+import re
 import sys
 import six
 import uuid
@@ -16,6 +17,11 @@ from os import walk, path, makedirs, rmdir, remove
 import tarfile
 from os.path import join
 
+def is_arn(string):
+    arn_regex = 'arn:aws:kms:[\w-]+:\d+:key/[\w]+'
+    if re.match(arn_regex,string)
+        return True
+    return False
 
 class KmsTool(object):
     def __init__(self,
@@ -24,11 +30,13 @@ class KmsTool(object):
                  temp_dir='/var/tmp/kmstool',
                  profile=None,
                  region=None,
+                 sse=None,
                  key_length=32,):
         self.key_id=key_id
         self.key_spec=key_spec
         self.key_length=key_length
         self.bs = AES.block_size
+        self.sse = sse
         self.temp_dir = '{}/{}/'.format(temp_dir.rstrip('/\\'), uuid.uuid4())
         self.profile=profile
         self.region=region
