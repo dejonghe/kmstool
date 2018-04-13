@@ -30,8 +30,6 @@ class KmsTool(object):
         self.key_length=key_length
         self.bs = AES.block_size
         self.temp_dir = '{}/{}/'.format(temp_dir.rstrip('/\\'), uuid.uuid4())
-        self.profile=profile
-        self.region=region
         try: 
             makedirs(self.temp_dir)
         except:
@@ -39,7 +37,7 @@ class KmsTool(object):
             makedirs(self.temp_dir)
         self.enc_file = join(self.temp_dir, 'file.enc')
         self.cipher_file = join(self.temp_dir, 'key.enc')
-        self.session = self.connect()
+        self.session =  Session(profile_name=profile,region_name=region) 
         self.kms = self.session.client('kms')
         self.s3 = self.session.client('s3')
 
@@ -53,14 +51,6 @@ class KmsTool(object):
             for name in dirs:
                 rmdir(join(root, name))
         rmdir(path)
-    
-    # create a session with profile optional region
-    def connect(self):
-        if self.region == None: 
-            session = Session(profile_name=self.profile) 
-        else:
-            session = Session(profile_name=self.profile,region_name=self.region) 
-        return session
     
     # make a big messy md5
     def derive_key_and_iv(self, salt, iv_length):
