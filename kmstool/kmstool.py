@@ -207,10 +207,29 @@ class KmsTool(object):
             for name in [self.enc_file, self.cipher_file]:
                 tar.add(name,arcname=path.split(name)[1])
 
+    def sse_algo(self, sse_key):
+        if sse_key:
+            if is_arn(sse_key):
+                return 'aws:kms',None,None,sse_key
+            else:
+                return 'AES256','AES256',sse_key,None
+        else:
+            return None,None,None,None
+
     def s3_upload(self, orig, dest):
         dest_bucket = dest.split('/')[2]
         dest_key = '/'.join(dest.split('/')[3:])
-        self.s3.upload_file(orig, dest_bucket, dest_key)
+        sse_algo,cust_algo,cust_key,kms_key = self.sse_algo(self.sse)
+        with open(orig,'r') as orig_file:
+            self.s3.put_object(
+                Body=orig_file, 
+                Bucket=dest_bucket, 
+                Key=dest_key,
+                ServerSideEncryption=sse_algo
+                SSECustomerAlgorithm=cust_algo
+                SSECustomerKey=cust_key
+                SSEKMSKeyId=kms_key
+            )
 
     def s3_download(self, orig, dest):
         orig_bucket = orig.split('/')[2]
