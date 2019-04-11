@@ -6,7 +6,7 @@ pipeline {
   environment {
     SERVICE = 'kmstool'
     GITHUB_KEY = 'Jenkins'
-    GITHUB_URL = 'https://github.com/dejonghe/kmstool'
+    GITHUB_URL = 'https://github.com/josephbmanley/kmstool'
     DOCKER_REGISTRY = '356438515751.dkr.ecr.us-east-1.amazonaws.com'
   }
   stages {
