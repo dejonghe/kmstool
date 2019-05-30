@@ -58,6 +58,12 @@ pipeline {
         }
       }
     }
+    stage('Push Version and Tag') {
+        steps {
+            echo "The current branch is ${env.BRANCH_NAME}."
+            gitPush(env.GITHUB_KEY, env.BRANCH_NAME, true)
+        }
+    }
   }
   post {
     always {
