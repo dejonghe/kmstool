@@ -73,8 +73,7 @@ pipeline {
             sh "docker push ${env.DOCKER_REGISTRY}/${env.SERVICE}:${env.VERSION}"
             script
             {
-              //if("${env.BRANCH_NAME}" == "bugfix.pipeline")
-              if(true)
+              if("${env.BRANCH_NAME}" == "development")
               {
                 sh "docker tag ${env.DOCKER_REGISTRY}/${env.SERVICE}:${env.VERSION} ${env.DOCKER_REGISTRY}/${env.SERVICE}:latest"
                 sh "docker push ${env.DOCKER_REGISTRY}/${env.SERVICE}:latest"
