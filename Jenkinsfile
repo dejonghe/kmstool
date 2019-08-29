@@ -48,7 +48,7 @@ pipeline {
         }
       }
     }
-    stage('Push')
+    stage('Ship')
     {
       steps {     
         withEcr {
@@ -70,12 +70,18 @@ pipeline {
       post{
         // Update Git with status of push stage.
         success {
-          updateGithubCommitStatus(GITHUB_URL, 'Passed push stage', 'SUCCESS', 'Push')
+          updateGithubCommitStatus(GITHUB_URL, 'Passed ship stage', 'SUCCESS', 'Ship')
         }
         failure {
-          updateGithubCommitStatus(GITHUB_URL, 'Failed push stage', 'FAILURE', 'Push')
+          updateGithubCommitStatus(GITHUB_URL, 'Failed ship stage', 'FAILURE', 'Ship')
         }
       }
+    }
+    stage('Push Version and Tag') {
+        steps {
+            echo "The current branch is ${env.BRANCH_NAME}."
+            gitPush(env.GITHUB_KEY, env.BRANCH_NAME, true)
+        }
     }
   }
   post {
