@@ -34,9 +34,9 @@ pipeline {
         echo "Building ${env.SERVICE} docker image"
 
         // Docker build flags are set via the getDockerBuildFlags() shared library.
-        sh "docker build ${getDockerBuildFlags()} -t ${env.DOCKER_REGISTRY}/${env.SERVICE}:${env.VERSION} ."
+        sh "docker build ${getDockerBuildFlags()} -t ${env.DOCKER_REGISTRY}/${env.SERVICE}:${env.SEMVER_RESOLVED_VERSION} ."
 
-        sh "tar -czvf ${env.SERVICE}-${env.VERSION}.tar.gz kmstool"
+        sh "tar -czvf ${env.SERVICE}-${env.SEMVER_RESOLVED_VERSION}.tar.gz kmstool"
       }
       post{
         // Update Git with status of build stage.
@@ -52,19 +52,19 @@ pipeline {
     {
       steps {     
         withEcr {
-            sh "docker push ${env.DOCKER_REGISTRY}/${env.SERVICE}:${env.VERSION}"
+            sh "docker push ${env.DOCKER_REGISTRY}/${env.SERVICE}:${env.SEMVER_RESOLVED_VERSION}"
             script
             {
               if("${env.BRANCH_NAME}" == "development")
               {
-                sh "docker tag ${env.DOCKER_REGISTRY}/${env.SERVICE}:${env.VERSION} ${env.DOCKER_REGISTRY}/${env.SERVICE}:latest"
+                sh "docker tag ${env.DOCKER_REGISTRY}/${env.SERVICE}:${env.SEMVER_RESOLVED_VERSION} ${env.DOCKER_REGISTRY}/${env.SERVICE}:latest"
                 sh "docker push ${env.DOCKER_REGISTRY}/${env.SERVICE}:latest"
               }
             }
         }
         
         //Copy tar.gz file to s3 bucket
-        sh "aws s3 cp ${env.SERVICE}-${env.VERSION}.tar.gz s3://rbn-ops-pkg-us-east-1/${env.SERVICE}/${env.SERVICE}-${env.VERSION}.tar.gz"
+        sh "aws s3 cp ${env.SERVICE}-${env.SEMVER_RESOLVED_VERSION}.tar.gz s3://rbn-ops-pkg-us-east-1/${env.SERVICE}/${env.SERVICE}-${env.SEMVER_RESOLVED_VERSION}.tar.gz"
 
       }
       post{
